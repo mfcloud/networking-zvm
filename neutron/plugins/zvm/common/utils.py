@@ -16,7 +16,6 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron._i18n import _LI, _LW
 from zvmsdk import utils as xcatutils
 
 CONF = cfg.CONF
@@ -92,7 +91,7 @@ class zvmUtils(object):
             except ValueError:
                 # just in case there are bad records of vlan info which
                 # could be a string
-                LOG.warning(_LW("Unknown vlan '%(vlan)s' for user %(user)s."),
+                LOG.warning("Unknown vlan '%(vlan)s' for user %(user)s.",
                             {'vlan': port['vlan_id'], 'user': port['userid']})
                 cmd += '\n'
                 continue
@@ -106,7 +105,7 @@ class zvmUtils(object):
                     records_num = 0
                     cmd = ''
                 except Exception:
-                    LOG.warning(_LW("Grant user failed"))
+                    LOG.warning("Grant user failed")
 
         if len(cmd) > 0:
             commands = 'echo -e "#!/bin/sh\n%s" > grant.sh' % cmd[:-1]
@@ -153,7 +152,7 @@ class zvmUtils(object):
             try:
                 ports[port_id]['userid'] = users[port['nodename']]['userid']
             except Exception:
-                LOG.info(_LI("Garbage port found. port id: %s") % port_id)
+                LOG.info("Garbage port found. port id: %s" % port_id)
 
         return ports
 
