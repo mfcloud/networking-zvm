@@ -32,6 +32,7 @@ from neutron._i18n import _, _LE, _LI, _LW
 from neutron import context
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.drivers.zvm import mech_zvm
+from neutron.plugins.zvm.agent import base_agent
 from neutron.plugins.zvm.agent import zvm_network
 from neutron.plugins.zvm.common import constants
 from neutron.plugins.zvm.common import exception
@@ -61,6 +62,7 @@ class zvmNeutronAgent(object):
         self._host = cfg.CONF.AGENT.zvm_host or cfg.CONF.host
         self._port_map = {}
         self._xcat_url = xcatutils.xCatURL()
+        self._neutron_client = base_agent.NeutronAPIClient()
 
         zvm_net = zvm_network.zvmNetwork()
         self.agent_state = {

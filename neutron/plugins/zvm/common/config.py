@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 
 from neutron._i18n import _
@@ -75,7 +76,26 @@ Possible values:
         help=_("The IP mask is used for xCAT MN to management instances.")),
 ]
 
+NEUTRON_GROUP_NAME = 'neutron'
+
+NEUTRON_GROUP = cfg.OptGroup(
+    NEUTRON_GROUP_NAME,
+    title='Neutron Options',
+    help=('Configuration options for neutron (network connectivity as a '
+          'service).')
+)
+
+NEUTRON_OPTS = [
+    cfg.StrOpt(
+        'auth_strategy',
+        default='keystone',
+        help='auth strategy for connecting to neutron in admin context')
+]
 CONF = cfg.CONF
 CONF.register_opts(agent_opts, "AGENT")
+CONF.register_group(NEUTRON_GROUP)
+CONF.register_opts(NEUTRON_OPTS, group=NEUTRON_GROUP_NAME)
+ks_loading.register_session_conf_options(CONF, NEUTRON_GROUP)
+ks_loading.register_auth_conf_options(CONF, NEUTRON_GROUP)
 config.register_agent_state_opts_helper(cfg.CONF)
 config.register_root_helper(cfg.CONF)
