@@ -38,6 +38,7 @@ from neutron.plugins.zvm.common import constants
 from neutron.plugins.zvm.common import exception
 from neutron.plugins.zvm.common import utils
 from neutron.plugins.zvm.common import xcatutils
+from zvmsdk import utils as zvmutils
 
 
 LOG = logging.getLogger(__name__)
@@ -56,12 +57,12 @@ class zvmNeutronAgent(object):
 
     def __init__(self):
         super(zvmNeutronAgent, self).__init__()
+        self._xcat_url = zvmutils.get_xcat_url()
         self._utils = utils.zvmUtils()
         self._polling_interval = cfg.CONF.AGENT.polling_interval
         self._zhcp_node = cfg.CONF.AGENT.xcat_zhcp_nodename
         self._host = cfg.CONF.AGENT.zvm_host or cfg.CONF.host
         self._port_map = {}
-        self._xcat_url = xcatutils.xCatURL()
         self._neutron_client = base_agent.NeutronAPIClient()
 
         zvm_net = zvm_network.zvmNetwork()
@@ -141,6 +142,24 @@ class zvmNeutronAgent(object):
             self.agent_state.pop('start_flag', None)
         except Exception:
             LOG.exception(_LE("Failed reporting state!"))
+
+    def _get_userid_from_node(self, vm_id):
+        addp = '&col=node&value=%s&attribute=userid' % vm_id
+        url = self._xcat_url.gettab("/zvm", addp)
+        with zvmutils.expect_invalid_xcat_resp_data():
+            return zvmutils.xcat_request("GET", url)['data'][0][0]
+
+    def _get_nic_settings(self, port_id, field=None, get_node=False):
+        """Get NIC information from xCat switch table."""
+        LOG.debug("Get nic information for port: %s", port_id)
+        addp = '&col=port&value=%s' % port_id + '&attribute=%s' % (
+                                                field and field or 'node')
+        url = self._xcat_url.gettab("/switch", addp)
+        with zvmutils.expect_invalid_xcat_resp_data():
+            ret_value = zvmutils.xcat_request("GET", url)['data'][0][0]
+        if field is None and not get_node:
+            ret_value = self._get_userid_from_node(ret_value)
+        return ret_value
 
     def network_delete(self, context, network_id=None):
         LOG.info(_LI("Network delete received. UUID: %s"), network_id)
