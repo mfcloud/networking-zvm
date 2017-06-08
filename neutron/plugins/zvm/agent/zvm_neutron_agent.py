@@ -202,12 +202,12 @@ class zvmNeutronAgent(object):
                                 self._port_map[port_id]['userid'])
 
     def _update_ports(self, registered_ports):
-        ports_info = self._neutron_client.get_network_ports()
+        ports_info = self._utils.get_nic_ids()
         ports = set()
         for p in ports_info:
-            target_host = p['binding:host_id']
-            new_port_id = p['id']
-            if target_host == self._host:
+            target_host = p.split(',')[5].strip('"')
+            new_port_id = p.split(',')[2].strip('"')
+            if target_host == self._zhcp_node:
                 ports.add(new_port_id)
 
         if ports == registered_ports:
