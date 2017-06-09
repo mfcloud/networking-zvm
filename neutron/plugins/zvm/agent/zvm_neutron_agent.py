@@ -37,7 +37,7 @@ from neutron.plugins.zvm.common import constants
 from neutron.plugins.zvm.common import exception
 from neutron.plugins.zvm.common import utils
 from neutron.plugins.zvm.common import xcatutils
-
+from zvmsdk import api as sdkapi
 
 LOG = logging.getLogger(__name__)
 
@@ -55,12 +55,13 @@ class zvmNeutronAgent(object):
 
     def __init__(self):
         super(zvmNeutronAgent, self).__init__()
+        self._sdk_api = sdkapi.SDKAPI()
         self._utils = utils.zvmUtils()
         self._polling_interval = cfg.CONF.AGENT.polling_interval
         self._zhcp_node = cfg.CONF.AGENT.xcat_zhcp_nodename
-        self._host = cfg.CONF.AGENT.zvm_host or cfg.CONF.host
+        self._host = self._sdk_api.host_get_info().get(
+                                    'zvm_host') or cfg.CONF.host
         self._port_map = {}
-        self._xcat_url = xcatutils.xCatURL()
 
         zvm_net = zvm_network.zvmNetwork()
         self.agent_state = {
@@ -113,7 +114,7 @@ class zvmNeutronAgent(object):
             time.sleep(_slp)
 
     def _setup_server_rpc(self):
-        self.agent_id = 'zvm_agent_%s' % self._zhcp_node
+        self.agent_id = 'zvm_agent_%s' % self._host
         self.topic = topics.AGENT
         self.plugin_rpc = agent_rpc.PluginApi(topics.PLUGIN)
         self.state_rpc = agent_rpc.PluginReportStateAPI(topics.PLUGIN)
