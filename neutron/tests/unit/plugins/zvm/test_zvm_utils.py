@@ -93,7 +93,7 @@ class TestZVMUtils(base.BaseTestCase):
         xrequest.assert_called_with('GET', url)
         self.assertEqual(info, [data])
 
-    @mock.patch.object(utils.zvmUtils, '_get_nic_settings')
+    @mock.patch.object(utils.zvmUtils, 'get_nic_settings')
     def test_get_node_from_port(self, get_nic):
         self._utils.get_node_from_port(self._FAKE_PORT_NAME)
         get_nic.assert_called_once_with(self._FAKE_PORT_NAME, get_node=True)

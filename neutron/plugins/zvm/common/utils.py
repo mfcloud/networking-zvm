@@ -21,7 +21,6 @@ from neutron._i18n import _LI, _LW, _LE
 from neutron.plugins.zvm.common import exception
 from zvmsdk import utils as xcatutils
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ class zvmUtils(object):
         self._xcat_node_name = self._get_xcat_node_name()
 
     def get_node_from_port(self, port_id):
-        return self._get_nic_settings(port_id, get_node=True)
+        return self.get_nic_settings(port_id, get_node=True)
 
     def get_nic_ids(self):
         addp = ''
@@ -48,7 +47,7 @@ class zvmUtils(object):
         # it's possible to return empty array
         return nic_settings
 
-    def _get_nic_settings(self, port_id, field=None, get_node=False):
+    def get_nic_settings(self, port_id, field=None, get_node=False):
         """Get NIC information from xCat switch table."""
         LOG.debug("Get nic information for port: %s", port_id)
         addp = '&col=port&value=%s' % port_id + '&attribute=%s' % (
@@ -70,7 +69,7 @@ class zvmUtils(object):
                               zhcp, userid, dm=True, immdt=True):
         """Couple nic to vswitch."""
         LOG.debug("Connect nic to switch: %s", vswitch_name)
-        vdev = self._get_nic_settings(switch_port_name, "interface")
+        vdev = self.get_nic_settings(switch_port_name, "interface")
         if vdev:
             self._couple_nic(zhcp, vswitch_name, userid, vdev, dm, immdt)
         else:
@@ -83,12 +82,12 @@ class zvmUtils(object):
                                   zhcp, userid, dm=True, immdt=True):
         """Uncouple nic from vswitch."""
         LOG.debug("Disconnect nic from switch: %s", vswitch_name)
-        vdev = self._get_nic_settings(switch_port_name, "interface")
+        vdev = self.get_nic_settings(switch_port_name, "interface")
         self._uncouple_nic(zhcp, userid, vdev, dm, immdt)
 
     def set_vswitch_port_vlan_id(self, vlan_id, switch_port_name, zhcp,
                                  vswitch_name):
-        userid = self._get_nic_settings(switch_port_name)
+        userid = self.get_nic_settings(switch_port_name)
         if not userid:
             raise exception.zVMInvalidDataError(msg=('Cannot get userid by '
                             'port %s') % (switch_port_name))
@@ -515,7 +514,7 @@ class zvmUtils(object):
 
     def add_nic_to_user_direct(self, nodename, nic_info):
         """add one NIC's info to user direct."""
-        vdev = self._get_nic_settings(nic_info['port_id'], "interface")
+        vdev = self.get_nic_settings(nic_info['port_id'], "interface")
 
         url = self._xcat_url.chvm('/' + nodename)
         command = 'Image_Definition_Update_DM -T %userid%'

@@ -36,8 +36,8 @@ from neutron.plugins.zvm.agent import zvm_network
 from neutron.plugins.zvm.common import constants
 from neutron.plugins.zvm.common import exception
 from neutron.plugins.zvm.common import utils
-from neutron.plugins.zvm.common import xcatutils
 from zvmsdk import api as sdkapi
+from zvmsdk import utils as zvmutils
 
 LOG = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ class zvmNeutronAgent(object):
         _slp = 5
 
         # TODO(jichenjc): update _xcat_version when xcat reboot
-        self._xcat_version = xcatutils.get_xcat_version()
+        self._xcat_version = zvmutils.get_xcat_version()
         version_ok = self.has_min_version(constants.XCAT_MINIMUM_VERSION)
         while (not version_ok):
             LOG.warning(_LW("WARNING: the xcat version communicating with is "
@@ -156,17 +156,26 @@ class zvmNeutronAgent(object):
         vswitch = self._port_map[port['id']]['vswitch']
         userid = self._port_map[port['id']]['userid']
         if port['admin_state_up']:
-            self._utils.couple_nic_to_vswitch(vswitch, port['id'],
-                                             self._zhcp_node, userid)
+            vdev = self._utils.get_nic_settings(port['id'], "interface")
+            if not vdev:
+                raise exception.zVMInvalidDataError(msg=('Cannot get vdev '
+                                'for user %s, couple to port %s') %
+                                (userid, port['id']))
+            self._sdk_api.guest_nic_couple_to_vswitch(vswitch, vdev,
+                                                      userid, persist=True)
             self.plugin_rpc.update_device_up(self.context, port['id'],
                                              self.agent_id)
         else:
-            self._utils.uncouple_nic_from_vswitch(vswitch, port['id'],
-                                                self._zhcp_node, userid)
+            vdev = self._utils.get_nic_settings(port['id'], "interface")
+            if not vdev:
+                raise exception.zVMInvalidDataError(msg=('Cannot get vdev '
+                                'for user %s, uncouple port %s') %
+                                (userid, port['id']))
+            self._sdk_api.guest_nic_uncouple_from_vswitch(vswitch, vdev,
+                                                          userid,
+                                                          persist=True)
             self.plugin_rpc.update_device_down(self.context, port['id'],
                                                self.agent_id)
-        self._utils.put_user_direct_online(self._zhcp_node,
-                                           self._zhcp_userid)
 
     def port_bound(self, port_id, net_uuid,
                    network_type, physical_network, segmentation_id, userid):
@@ -180,15 +189,15 @@ class zvmNeutronAgent(object):
                   'seg_id': segmentation_id,
                   'userid': userid})
 
-        self._utils.grant_user(self._zhcp_node, physical_network, userid)
+        self._sdk_api.vswitch_grant_user(physical_network, userid)
         if network_type == p_const.TYPE_VLAN:
             LOG.info(_LI('Binding VLAN, VLAN ID: %(segmentation_id)s, '
                          'port_id: %(port_id)s'),
                      {'segmentation_id': segmentation_id,
                       'port_id': port_id})
-            self._utils.set_vswitch_port_vlan_id(segmentation_id, port_id,
-                                                 self._zhcp_node,
-                                                 physical_network)
+            self._sdk_api.vswitch_set_vlan_id_for_user(physical_network,
+                                                       userid,
+                                                       segmentation_id)
         else:
             LOG.info(_LI('Bind %s port done'), port_id)
 
@@ -196,7 +205,7 @@ class zvmNeutronAgent(object):
         LOG.info(_LI("Unbinding port %s"), port_id)
         # uncouple is not necessary, because revoke user will uncouple it
         # automatically.
-        self._utils.revoke_user(self._zhcp_node,
+        self._sdk_api.vswitch_revoke_user(
                                 self._port_map[port_id]['vswitch'],
                                 self._port_map[port_id]['userid'])
 
@@ -227,7 +236,7 @@ class zvmNeutronAgent(object):
                             physical_network, segmentation_id,
                             userid)
         else:
-            self._utils.grant_user(self._zhcp_node, physical_network, userid)
+            self._sdk_api.vswitch_grant_user(physical_network, userid)
         return (node, userid)
 
     def _treat_devices_added(self, devices):
@@ -278,6 +287,15 @@ class zvmNeutronAgent(object):
                                     {'port_id': details['port_id'],
                                     'vswitch': details['physical_network'],
                                     'mac': mac})
+
+                        LOG.debug("Adding NICs for %(node)s, info: %(nic)s",
+                                  {'node': node, 'nic': nics_info[node]})
+                        vdev = self._utils.get_nic_settings(
+                                            details['port_id'], "interface")
+                        self._sdk_api.guest_update_nic_definition(node, vdev,
+                                                                  mac,
+                                                details['physical_network'])
+
                         LOG.debug("New added NIC info: %s", nics_info[node])
                     else:
                         LOG.info(_LI("Setting status for %s to DOWN"), device)
@@ -294,11 +312,6 @@ class zvmNeutronAgent(object):
                 LOG.exception(_LE("Can not add device %(device)s: %(msg)s"),
                               {'device': device, 'msg': e})
                 continue
-
-        for node, nic_list in nics_info.items():
-            LOG.debug("Adding NICs for %(node)s, info: %(nic)s",
-                      {'node': node, 'nic': nic_list})
-            self._utils.add_nics_to_direct(self._zhcp_node, node, nic_list)
 
     def _treat_devices_removed(self, devices):
         for device in devices:

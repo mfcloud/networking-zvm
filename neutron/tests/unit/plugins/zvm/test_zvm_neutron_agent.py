@@ -119,10 +119,9 @@ class TestZVMNeutronAgent(base.BaseTestCase):
             enable_vlan = True
 
         with mock.patch.multiple(
-                self.agent._utils,
-                couple_nic_to_vswitch=mock.MagicMock(),
-                put_user_direct_online=mock.MagicMock(),
-                set_vswitch_port_vlan_id=mock_enable_vlan):
+                self.agent._sdk_api,
+                vswitch_grant_user=mock.MagicMock(),
+                vswitch_set_vlan_id_for_user=mock_enable_vlan):
 
             self.agent.port_bound(port, net_uuid, network_type, None,
                                   vid, 'fake_user')
@@ -189,21 +188,28 @@ class TestZVMNeutronAgent(base.BaseTestCase):
                                         'unknown_port')
             self.assertTrue(self.agent.plugin_rpc.update_device_down.called)
 
-    def test_port_update_up(self):
+    @mock.patch('neutron.plugins.zvm.common.utils.zvmUtils.'
+                'get_nic_settings')
+    def test_port_update_up(self, get_nic):
+        get_nic.retrun_value = 'vdev'
+
         with mock.patch.object(self.agent.plugin_rpc,
                         "update_device_up") as rpc:
-            with mock.patch.object(self.agent._utils,
-                        "couple_nic_to_vswitch") as couple:
+            with mock.patch.object(self.agent._sdk_api,
+                        "guest_nic_couple_to_vswitch") as couple:
                 self.agent.port_update(None, port={'id': 'fake_uuid1',
                                                 'admin_state_up': True})
                 self.assertTrue(rpc.called)
                 self.assertTrue(couple.called)
 
-    def test_port_update_down(self):
+    @mock.patch('neutron.plugins.zvm.common.utils.zvmUtils.'
+                'get_nic_settings')
+    def test_port_update_down(self, get_nic):
+        get_nic.retrun_value = 'vdev'
         with mock.patch.object(self.agent.plugin_rpc,
                         "update_device_down") as rpc:
-            with mock.patch.object(self.agent._utils,
-                        "uncouple_nic_from_vswitch") as couple:
+            with mock.patch.object(self.agent._sdk_api,
+                        "guest_nic_uncouple_from_vswitch") as couple:
                 self.agent.port_update(None, port={'id': 'fake_uuid1',
                                                 'admin_state_up': False})
                 self.assertTrue(rpc.called)
@@ -226,7 +232,7 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
         self.agent._treat_vif_port('port_id', 'network_id', 'flat',
                                    'vsw1', '10', False)
-        self.assertTrue(self.agent._utils.grant_user.called)
+        self.assertTrue(self.agent._sdk_api.vswitch_grant_user.called)
 
     def test_handle_restart_zvm(self):
         q_xcat = mock.MagicMock(return_value="xcat uptime 2")
