@@ -19,7 +19,7 @@ import operator
 import sys
 import time
 
-from oslo_config import cfg
+
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import versionutils
@@ -33,6 +33,7 @@ from neutron import context
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.drivers.zvm import mech_zvm
 from neutron.plugins.zvm.agent import zvm_network
+from neutron.plugins.zvm.common import config as cfg
 from neutron.plugins.zvm.common import constants
 from neutron.plugins.zvm.common import exception
 from neutron.plugins.zvm.common import utils
@@ -40,6 +41,7 @@ from zvmsdk import api as sdkapi
 from zvmsdk import utils as zvmutils
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 def restart_wrapper(func):
@@ -57,10 +59,10 @@ class zvmNeutronAgent(object):
         super(zvmNeutronAgent, self).__init__()
         self._sdk_api = sdkapi.SDKAPI()
         self._utils = utils.zvmUtils()
-        self._polling_interval = cfg.CONF.AGENT.polling_interval
-        self._zhcp_node = cfg.CONF.AGENT.xcat_zhcp_nodename
+        self._polling_interval = CONF.AGENT.polling_interval
+        self._zhcp_node = CONF.AGENT.xcat_zhcp_nodename
         self._host = self._sdk_api.host_get_info().get(
-                                    'zvm_host') or cfg.CONF.host
+                                    'zvm_host') or CONF.host
         self._port_map = {}
 
         zvm_net = zvm_network.zvmNetwork()
@@ -128,7 +130,7 @@ class zvmNeutronAgent(object):
                                                      self.topic,
                                                      consumers)
 
-        report_interval = cfg.CONF.AGENT.report_interval
+        report_interval = CONF.AGENT.report_interval
         if report_interval:
             heartbeat = loopingcall.FixedIntervalLoopingCall(
                 self._report_state)
@@ -385,19 +387,19 @@ class zvmNeutronAgent(object):
         by default neutron_zvm_plugin.ini.
         '''
 
-        if (cfg.CONF.AGENT.xcat_mgt_ip is None or
-                cfg.CONF.AGENT.xcat_mgt_mask is None):
+        if (CONF.AGENT.xcat_mgt_ip is None or
+                CONF.AGENT.xcat_mgt_mask is None):
             LOG.info(_LI("User does not configure management IP. Don't need to"
                        " initialize xCAT management network."))
             return
-        if not len(cfg.CONF.ml2_type_flat.flat_networks):
+        if not len(CONF.ml2_type_flat.flat_networks):
             raise exception.zVMConfigException(
                         msg=_('Can not find xCAT management network,'
                               'a flat network is required by xCAT.'))
         self._utils.create_xcat_mgt_network(self._zhcp_node,
-                            cfg.CONF.AGENT.xcat_mgt_ip,
-                            cfg.CONF.AGENT.xcat_mgt_mask,
-                            cfg.CONF.ml2_type_flat.flat_networks[0])
+                            CONF.AGENT.xcat_mgt_ip,
+                            CONF.AGENT.xcat_mgt_mask,
+                            CONF.ml2_type_flat.flat_networks[0])
 
     @restart_wrapper
     def _handle_restart(self):
@@ -425,7 +427,7 @@ class zvmNeutronAgent(object):
 
 def main():
     eventlet.monkey_patch()
-    cfg.CONF(project='neutron')
+    CONF(project='neutron')
     common_config.init(sys.argv[1:])
     common_config.setup_logging()
 
