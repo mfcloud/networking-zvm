@@ -38,6 +38,7 @@ from neutron.plugins.zvm.common import constants
 from neutron.plugins.zvm.common import exception
 from neutron.plugins.zvm.common import utils
 from zvmsdk import api as sdkapi
+from zvmsdk import exception as sdkexception
 from zvmsdk import utils as zvmutils
 
 LOG = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class zvmNeutronAgent(object):
         self._sdk_api = sdkapi.SDKAPI()
         self._utils = utils.zvmUtils()
         self._polling_interval = CONF.AGENT.polling_interval
-        self._zhcp_node = CONF.AGENT.xcat_zhcp_nodename
+        self._zhcp_node = zvmutils.get_zhcp_node()
         self._host = self._sdk_api.host_get_info().get(
                                     'zvm_host') or CONF.host
         self._port_map = {}
@@ -74,7 +75,6 @@ class zvmNeutronAgent(object):
             'agent_type': mech_zvm.AGENT_TYPE_ZVM,
             'start_flag': True}
         self._setup_server_rpc()
-        self._zhcp_userid = self._utils.get_zhcp_userid(self._zhcp_node)
         self._restart_handler = self._handle_restart()
 
     def _version_check(self, req_ver=None, op=operator.lt):
@@ -381,25 +381,23 @@ class zvmNeutronAgent(object):
     def _init_xcat_mgt(self):
         '''xCAT Management Node(MN) use the first flat network to manage all
         the instances. So a flat network is required.
-        To talk to xCAT MN, xCAT MN requires every instance has a NIC which is
-        in the same subnet as xCAT. The xCAT MN's IP address is xcat_mgt_ip,
-        mask is xcat_mgt_mask in the config file,
-        by default neutron_zvm_plugin.ini.
         '''
 
-        if (CONF.AGENT.xcat_mgt_ip is None or
-                CONF.AGENT.xcat_mgt_mask is None):
-            LOG.info(_LI("User does not configure management IP. Don't need to"
-                       " initialize xCAT management network."))
-            return
         if not len(CONF.ml2_type_flat.flat_networks):
             raise exception.zVMConfigException(
                         msg=_('Can not find xCAT management network,'
                               'a flat network is required by xCAT.'))
-        self._utils.create_xcat_mgt_network(self._zhcp_node,
-                            CONF.AGENT.xcat_mgt_ip,
-                            CONF.AGENT.xcat_mgt_mask,
+
+        try:
+            zvmutils.create_xcat_mgt_network(
                             CONF.ml2_type_flat.flat_networks[0])
+        except sdkexception.zVMConfigException as err:
+            emsg = err.format_message()
+            raise exception.zVMConfigException(msg=emsg)
+        except Exception as err:
+            LOG.error(_LE("Failed to create xCAT management network: %s") %
+                      err.format_message())
+            raise err
 
     @restart_wrapper
     def _handle_restart(self):
@@ -412,7 +410,7 @@ class zvmNeutronAgent(object):
                     self._init_xcat_mgt()
                     xcat_uptime = tmp_new_time
 
-                tmp_new_time = self._utils.query_zvm_uptime(self._zhcp_node)
+                tmp_new_time = self._sdk_api.host_get_info().get('ipl_time')
                 if zvm_uptime != tmp_new_time:
                     self._port_map = self._utils.re_grant_user(self._zhcp_node)
                     zvm_uptime = tmp_new_time
