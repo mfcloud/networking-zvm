@@ -68,19 +68,6 @@ class TestZVMUtils(base.BaseTestCase):
         self.assertEqual(ret, "fake_user")
 
     @mock.patch.object(zvmutils, 'xcat_request')
-    def test_update_xcat_switch(self, xrequest):
-        commands = "port=%s" % self._FAKE_PORT_NAME
-        commands += " switch.switch=%s" % self._FAKE_VSWITCH_NAME
-        commands += " switch.vlan=%s" % (self._FAKE_VLAN_ID and
-                                         self._FAKE_VLAN_ID or -1)
-        url = self._xcat_url.tabch("/switch")
-        body = [commands]
-        self._utils.update_xcat_switch(self._FAKE_PORT_NAME,
-                                       self._FAKE_VSWITCH_NAME,
-                                       self._FAKE_VLAN_ID)
-        xrequest.assert_called_with("PUT", url, body)
-
-    @mock.patch.object(zvmutils, 'xcat_request')
     def test_re_grant_user(self, xrequest):
         '''We assume there is three nodes valid in the xCAT MN db, they are:
         node1, node2, node4. We mock _MAX_REGRANT_USER_NUMBER to 2. So the

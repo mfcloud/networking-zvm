@@ -274,10 +274,6 @@ class zvmNeutronAgent(object):
                     self._port_map[device]['vlan_id'] = details[
                                                         'segmentation_id']
 
-                    # no rollback if this fails
-                    self._utils.update_xcat_switch(details['port_id'],
-                                     details['physical_network'],
-                                     details['segmentation_id'])
                     if details.get('admin_state_up'):
                         LOG.info(_LI("Setting status for %s to UP"), device)
                         self.plugin_rpc.update_device_up(

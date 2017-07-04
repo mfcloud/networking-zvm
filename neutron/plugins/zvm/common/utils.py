@@ -157,15 +157,6 @@ class zvmUtils(object):
 
         return ports
 
-    def update_xcat_switch(self, port, vswitch, vlan):
-        """Update information in xCAT switch table."""
-        commands = "port=%s" % port
-        commands += " switch.switch=%s" % vswitch
-        commands += " switch.vlan=%s" % (vlan and vlan or -1)
-        url = self._xcat_url.tabch("/switch")
-        body = [commands]
-        xcatutils.xcat_request("PUT", url, body)
-
     def _get_xcat_node_ip(self):
         addp = '&col=key&value=master&attribute=value'
         url = self._xcat_url.gettab("/site", addp)
