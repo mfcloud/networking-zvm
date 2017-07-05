@@ -199,7 +199,7 @@ class zvmNeutronAgent(object):
                       'port_id': port_id})
             self._sdk_api.vswitch_set_vlan_id_for_user(physical_network,
                                                        userid,
-                                                       segmentation_id)
+                                                       int(segmentation_id))
         else:
             LOG.info(_LI('Bind %s port done'), port_id)
 
@@ -291,7 +291,7 @@ class zvmNeutronAgent(object):
                         vdev = self._utils.get_nic_settings(
                                             details['port_id'], "interface")
                         self._sdk_api.guest_update_nic_definition(node, vdev,
-                                                                  mac,
+                                                details['mac_address'],
                                                 details['physical_network'])
 
                         LOG.debug("New added NIC info: %s", nics_info[node])
