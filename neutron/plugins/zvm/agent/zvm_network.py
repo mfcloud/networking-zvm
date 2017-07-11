@@ -39,11 +39,12 @@ class zvmVswitch(object):
         self._sdk_api = sdkapi.SDKAPI()
         # check vlan set
         if not len(vlan):
-            vlan = 0
+            vlan = 'UNAWARE'
         else:
-            vlan = int(vlan[0][0])
+            vlan = str(vlan[0][0])
         self._sdk_api.vswitch_create(name,
-                getattr(CONF.get(name), "rdev_list"), vid=vlan)
+                                     rdev=getattr(CONF.get(name), "rdev_list"),
+                                     vid=vlan, network_type='ETHERNET')
 
 
 class zvmNetwork(object):
