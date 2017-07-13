@@ -290,9 +290,9 @@ class zvmNeutronAgent(object):
                                   {'node': node, 'nic': nics_info[node]})
                         vdev = self._utils.get_nic_settings(
                                             details['port_id'], "interface")
-                        self._sdk_api.guest_update_nic_definition(node, vdev,
-                                                details['mac_address'],
-                                                details['physical_network'])
+                        self._sdk_api.guest_nic_couple_to_vswitch(
+                                                details['physical_network'],
+                                                vdev, node)
 
                         LOG.debug("New added NIC info: %s", nics_info[node])
                     else:
