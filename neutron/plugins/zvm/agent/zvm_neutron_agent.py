@@ -163,8 +163,7 @@ class zvmNeutronAgent(object):
                 raise exception.zVMInvalidDataError(msg=('Cannot get vdev '
                                 'for user %s, couple to port %s') %
                                 (userid, port['id']))
-            self._sdk_api.guest_nic_couple_to_vswitch(vswitch, vdev,
-                                                      userid, persist=True)
+            self._sdk_api.guest_nic_couple_to_vswitch(userid, vdev, vswitch)
             self.plugin_rpc.update_device_up(self.context, port['id'],
                                              self.agent_id)
         else:
@@ -173,9 +172,7 @@ class zvmNeutronAgent(object):
                 raise exception.zVMInvalidDataError(msg=('Cannot get vdev '
                                 'for user %s, uncouple port %s') %
                                 (userid, port['id']))
-            self._sdk_api.guest_nic_uncouple_from_vswitch(vswitch, vdev,
-                                                          userid,
-                                                          persist=True)
+            self._sdk_api.guest_nic_uncouple_from_vswitch(userid, vdev)
             self.plugin_rpc.update_device_down(self.context, port['id'],
                                                self.agent_id)
 
@@ -290,9 +287,8 @@ class zvmNeutronAgent(object):
                                   {'node': node, 'nic': nics_info[node]})
                         vdev = self._utils.get_nic_settings(
                                             details['port_id'], "interface")
-                        self._sdk_api.guest_nic_couple_to_vswitch(
-                                                details['physical_network'],
-                                                vdev, node)
+                        self._sdk_api.guest_nic_couple_to_vswitch(node, vdev,
+                                                details['physical_network'])
 
                         LOG.debug("New added NIC info: %s", nics_info[node])
                     else:
