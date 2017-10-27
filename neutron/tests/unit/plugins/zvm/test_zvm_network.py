@@ -20,6 +20,7 @@ import mock
 from oslo_config import cfg
 
 from neutron.plugins.zvm.agent import zvm_network
+from neutron.plugins.zvm.common import utils as zvmutils
 from neutron.tests import base
 
 
@@ -33,15 +34,19 @@ class TestZVMNetwork(base.BaseTestCase):
 
     _FAKE_NETWORK_VLAN_RANGES = "fakevsw1:1:4094,fakevsw2,fakevsw3:2:2999"
 
-    def setUp(self):
+    @mock.patch.object(zvmutils.zVMSDKRequestHandler, 'call')
+    def setUp(self, call):
         super(TestZVMNetwork, self).setUp()
         cfg.CONF.set_override('flat_networks', FLAT_NETWORKS,
                               group='ml2_type_flat')
         cfg.CONF.set_override('network_vlan_ranges', VLAN_NETWORKS,
                               group='ml2_type_vlan')
+        call.return_value = []
+        self._zvm_network = zvm_network.zvmNetwork()
 
-        with mock.patch('zvmsdk.api.SDKAPI'):
-            self._zvm_network = zvm_network.zvmNetwork()
+    def test_init_driver(self):
+        self.assertIsInstance(self._zvm_network._sdkreq,
+                              zvmutils.zVMSDKRequestHandler)
 
     def test_get_network_maps(self):
         maps = self._zvm_network.get_network_maps()

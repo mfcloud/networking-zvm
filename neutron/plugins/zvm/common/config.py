@@ -26,6 +26,10 @@ agent_opts = [
         default=2,
         help=_("The number of seconds the agent will wait between "
         "polling for local device changes.")),
+    cfg.StrOpt(
+        'zvm_sdkserver_addr',
+        default='127.0.0.1',
+        help=_("The ip address of the zvm sdkserver")),
 ]
 
 CONF = cfg.CONF
