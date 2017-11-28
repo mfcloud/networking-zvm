@@ -18,32 +18,8 @@ from neutron_lib import exceptions as exception
 from neutron._i18n import _
 
 
-class zvmException(exception.NeutronException):
-    message = _('zvmException: %(msg)s')
-
-
-class zVMConfigException(exception.NeutronException):
-    message = _('zVMConfig Error: %(msg)s')
-
-
-class zVMxCatConnectionFailed(exception.NeutronException):
-    message = _('Failed to connect xCAT server: %(xcatserver)s')
-
-
-class zVMxCatRequestFailed(exception.NeutronException):
-    message = _('Request to xCAT server %(xcatserver)s failed: %(err)s')
-
-
-class zVMJsonLoadsError(exception.NeutronException):
-    message = _('JSON loads error: not in JSON format')
-
-
 class zVMInvalidDataError(exception.NeutronException):
     message = _('Invalid data error: %(msg)s')
-
-
-class zVMInvalidxCatResponseDataError(exception.NeutronException):
-    message = _('Invalid data returned from xCAT: %(msg)s')
 
 
 class ZVMSDKRequestFailed(exception.NeutronException):

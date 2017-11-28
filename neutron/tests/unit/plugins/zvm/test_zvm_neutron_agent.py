@@ -22,6 +22,7 @@ from oslo_config import cfg
 from neutron.plugins.zvm.agent import zvm_neutron_agent
 from neutron.tests import base
 
+SDK_URL = 'https://10.10.10.1:8080'
 FLAT_NETWORKS = ['flat_net1']
 VLAN_NETWORKS = ['vlan_net1:100:500']
 NET_UUID = 'zvm-net-uuid'
@@ -41,6 +42,8 @@ class TestZVMNeutronAgent(base.BaseTestCase):
     def setUp(self):
         super(TestZVMNeutronAgent, self).setUp()
         self.addCleanup(cfg.CONF.reset)
+        cfg.CONF.set_override('cloud_connector_url', SDK_URL,
+                              group='AGENT')
         cfg.CONF.set_override('rpc_backend',
                               'neutron.openstack.common.rpc.impl_fake')
         cfg.CONF.set_override('flat_networks', FLAT_NETWORKS,
@@ -54,7 +57,7 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
         with mock.patch(
                 'neutron.plugins.zvm.common.utils.'
-                'zVMSDKRequestHandler') as mock_SDKReq:
+                'zVMConnectorRequestHandler') as mock_SDKReq:
             with mock.patch(
                  'neutron.plugins.zvm.common.utils.zvmUtils') as mock_Utils:
                 instance = mock_SDKReq.return_value
@@ -96,7 +99,7 @@ class TestZVMNeutronAgent(base.BaseTestCase):
         if network_type == 'vlan':
             enable_vlan = True
 
-        with mock.patch.object(self.agent._sdkreq, "call") as call:
+        with mock.patch.object(self.agent._requesthandler, "call") as call:
             self.agent.port_bound(port, net_uuid, network_type, None,
                                   vid, 'fake_user')
             call.assert_any_call("vswitch_grant_user", None, 'fake_user')
@@ -138,7 +141,7 @@ class TestZVMNeutronAgent(base.BaseTestCase):
         self.agent.plugin_rpc.configure_mock(**attrs)
         with mock.patch.object(self.agent, "_treat_vif_port",
                     mock.Mock(return_value=('fake_user'))):
-            with mock.patch.object(self.agent._sdkreq, "call",
+            with mock.patch.object(self.agent._requesthandler, "call",
                                    call_ret):
                 self.agent._treat_devices_added(['added_port'])
                 self.assertTrue(self.agent.plugin_rpc.
@@ -186,7 +189,8 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
         with mock.patch.object(self.agent.plugin_rpc,
                         "update_device_up") as rpc:
-            with mock.patch.object(self.agent._sdkreq, "call", call_ret):
+            with mock.patch.object(self.agent._requesthandler, "call",
+                                   call_ret):
                 self.agent.port_update(None, port={'id': 'fake_uuid1',
                                                    'admin_state_up': True})
                 self.assertTrue(rpc.called)
@@ -199,7 +203,8 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
         with mock.patch.object(self.agent.plugin_rpc,
                         "update_device_down") as rpc:
-            with mock.patch.object(self.agent._sdkreq, "call", call_ret):
+            with mock.patch.object(self.agent._requesthandler, "call",
+                                   call_ret):
                 self.agent.port_update(None, port={'id': 'fake_uuid1',
                                                    'admin_state_up': False})
                 self.assertTrue(rpc.called)
@@ -209,7 +214,8 @@ class TestZVMNeutronAgent(base.BaseTestCase):
                                                  'nic_id', None]])
 
         with mock.patch.object(self.agent, "port_bound") as bound:
-            with mock.patch.object(self.agent._sdkreq, "call", call_ret):
+            with mock.patch.object(self.agent._requesthandler, "call",
+                                   call_ret):
                 self.agent._treat_vif_port('port_id', 'network_id', 'flat',
                                            'vsw1', '10', True)
                 self.assertTrue(bound.called)
@@ -220,7 +226,7 @@ class TestZVMNeutronAgent(base.BaseTestCase):
         sdk_req_resp.append('')
         call_ret = mock.MagicMock(side_effect=sdk_req_resp)
 
-        with mock.patch.object(self.agent._sdkreq, "call", call_ret):
+        with mock.patch.object(self.agent._requesthandler, "call", call_ret):
             self.agent._treat_vif_port('port_id', 'network_id', 'flat',
                                        'vsw1', '10', False)
             call_ret.assert_called_with("vswitch_grant_user", "vsw1",
@@ -232,7 +238,8 @@ class TestZVMNeutronAgent(base.BaseTestCase):
         port_map = mock.MagicMock()
 
         with mock.patch.object(self.agent._utils, "get_port_map", port_map):
-            with mock.patch.object(self.agent._sdkreq, "call", host_info):
+            with mock.patch.object(self.agent._requesthandler, "call",
+                                   host_info):
                 self.agent._restart_handler.send(None)
                 host_info.assert_called_with('host_get_info')
                 port_map.assert_called_with()

@@ -1,5 +1,5 @@
 [AGENT]
-# (StrOpt) The compute node name neutron-zvm-agent work on, same as 'host'in nova.conf
+# (StrOpt) The compute node name neutron-zvm-agent work on, same as 'host' in nova.conf
 # This property is optional. If it is not specified, 'host' in neutron.conf will be
 # used. Moreover, 'host' in neutron.conf is recommended and this property is deprecated.
 # zvm_host = opnstk1
@@ -10,9 +10,10 @@
 # Example: polling_interval = 5
 
 
-# (StrOpt) The ip address of the zvm sdkserver, default value is 127.0.0.1
-# zvm_sdkserver_addr = 127.0.0.1
-# Example: zvm_sdkserver_addr = 127.0.0.1
+# (StrOpt) URL to be used to communicate with z/VM Cloud Connector.
+# Example: https://10.10.10.1:8080.
+# cloud_connector_url = https://10.10.10.1:8080
+# Example: cloud_connector_url = https://10.10.10.1:8080
 
 # (StrOpt ) rdev_list for each vswitch's uplink real device(s), seperated by ','.
 # If a vswitch does not connect an OSA, which means it does not connect to
@@ -44,7 +45,7 @@
 #
 # [AGENT]
 # polling_interval = 2
-# zvm_sdkserver_addr = 127.0.0.1
+# cloud_connector_url = https://10.10.10.1:8080
 
 # 2. FLAT, VLAN mixed Mode
 # Physical network names should be identical to z/VM vswitch names. In
@@ -65,7 +66,7 @@
 #
 # [AGENT]
 # polling_interval = 2
-# zvm_sdkserver_addr = 127.0.0.1
+# cloud_connector_url = https://10.10.10.1:8080
 #
 # [xcatvsw3]
 # rdev_list=6243

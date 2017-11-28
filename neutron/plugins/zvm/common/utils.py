@@ -14,22 +14,24 @@
 
 
 from oslo_log import log as logging
+import six.moves.urllib.parse as urlparse
 
 from neutron.plugins.zvm.common import config as cfg
 from neutron.plugins.zvm.common import exception
-from sdkclient import client
+from zvmconnector import connector
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-class zVMSDKRequestHandler(object):
+class zVMConnectorRequestHandler(object):
 
     def __init__(self):
-        self._sdkclient = client.SDKClient(CONF.AGENT.zvm_sdkserver_addr)
+        _url = urlparse.urlparse(CONF.AGENT.cloud_connector_url)
+        self._conn = connector.ZVMConnector(_url.hostname, _url.port)
 
     def call(self, func_name, *args, **kwargs):
-        results = self._sdkclient.send_request(func_name, *args, **kwargs)
+        results = self._conn.send_request(func_name, *args, **kwargs)
         if results['overallRC'] == 0:
             return results['output']
         else:
@@ -44,10 +46,10 @@ class zVMSDKRequestHandler(object):
 class zvmUtils(object):
 
     def __init__(self):
-        self._sdkreq = zVMSDKRequestHandler()
+        self._requesthandler = zVMConnectorRequestHandler()
 
     def get_port_map(self):
-        ports_info = self._sdkreq.call('guests_get_nic_info')
+        ports_info = self._requesthandler.call('guests_get_nic_info')
         ports = {}
         for p in ports_info:
             if p[3] is not None:

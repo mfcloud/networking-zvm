@@ -49,10 +49,10 @@ class zvmNeutronAgent(object):
 
     def __init__(self):
         super(zvmNeutronAgent, self).__init__()
-        self._sdkreq = utils.zVMSDKRequestHandler()
+        self._requesthandler = utils.zVMConnectorRequestHandler()
         self._utils = utils.zvmUtils()
         self._polling_interval = CONF.AGENT.polling_interval
-        self._host = self._sdkreq.call('host_get_info').get(
+        self._host = self._requesthandler.call('host_get_info').get(
                                         'zvm_host') or CONF.host
         self._port_map = {}
 
@@ -110,8 +110,8 @@ class zvmNeutronAgent(object):
         vswitch = self._port_map[port['id']]['vswitch']
         userid = self._port_map[port['id']]['userid']
         if port['admin_state_up']:
-            nic_info = self._sdkreq.call('guests_get_nic_info',
-                                         nic_id=port['id'])
+            nic_info = self._requesthandler.call('guests_get_nic_info',
+                                                 nic_id=port['id'])
             if ((len(nic_info) != 1) or
                 (len(nic_info[0]) != 5) or
                 (not nic_info[0][1])):
@@ -121,13 +121,13 @@ class zvmNeutronAgent(object):
                                 (userid, port['id'], nic_info))
             else:
                 vdev = nic_info[0][1]
-            self._sdkreq.call('guest_nic_couple_to_vswitch', userid,
-                              vdev, vswitch)
+            self._requesthandler.call('guest_nic_couple_to_vswitch', userid,
+                                      vdev, vswitch)
             self.plugin_rpc.update_device_up(self.context, port['id'],
                                              self.agent_id)
         else:
-            nic_info = self._sdkreq.call('guests_get_nic_info',
-                                         nic_id=port['id'])
+            nic_info = self._requesthandler.call('guests_get_nic_info',
+                                                 nic_id=port['id'])
             if ((len(nic_info) != 1) or
                 (len(nic_info[0]) != 5) or
                 (not nic_info[0][1])):
@@ -137,7 +137,8 @@ class zvmNeutronAgent(object):
                                 (userid, port['id'], nic_info))
             else:
                 vdev = nic_info[0][1]
-            self._sdkreq.call('guest_nic_uncouple_from_vswitch', userid, vdev)
+            self._requesthandler.call('guest_nic_uncouple_from_vswitch',
+                                      userid, vdev)
             self.plugin_rpc.update_device_down(self.context, port['id'],
                                                self.agent_id)
 
@@ -153,15 +154,16 @@ class zvmNeutronAgent(object):
                   'seg_id': segmentation_id,
                   'userid': userid})
 
-        self._sdkreq.call('vswitch_grant_user', physical_network, userid)
+        self._requesthandler.call('vswitch_grant_user',
+                                  physical_network, userid)
         if network_type == q_const.TYPE_VLAN:
             LOG.info('Binding VLAN, VLAN ID: %(segmentation_id)s, '
                      'port_id: %(port_id)s',
                      {'segmentation_id': segmentation_id,
                       'port_id': port_id})
-            self._sdkreq.call('vswitch_set_vlan_id_for_user',
-                              physical_network, userid,
-                              int(segmentation_id))
+            self._requesthandler.call('vswitch_set_vlan_id_for_user',
+                                      physical_network, userid,
+                                      int(segmentation_id))
         else:
             LOG.info('Bind %s port done', port_id)
 
@@ -169,12 +171,12 @@ class zvmNeutronAgent(object):
         LOG.info("Unbinding port %s", port_id)
         # uncouple is not necessary, because revoke user will uncouple it
         # automatically.
-        self._sdkreq.call('vswitch_revoke_user',
-                          self._port_map[port_id]['vswitch'],
-                          self._port_map[port_id]['userid'])
+        self._requesthandler.call('vswitch_revoke_user',
+                                  self._port_map[port_id]['vswitch'],
+                                  self._port_map[port_id]['userid'])
 
     def _update_ports(self, registered_ports):
-        nic_info = self._sdkreq.call('guests_get_nic_info')
+        nic_info = self._requesthandler.call('guests_get_nic_info')
         ports = set()
         for p in nic_info:
             if p[3] is not None:
@@ -190,7 +192,8 @@ class zvmNeutronAgent(object):
     def _treat_vif_port(self, port_id, network_id, network_type,
                         physical_network, segmentation_id,
                         admin_state_up):
-        nic_info = self._sdkreq.call('guests_get_nic_info', nic_id=port_id)
+        nic_info = self._requesthandler.call('guests_get_nic_info',
+                                             nic_id=port_id)
         if ((len(nic_info) != 1) or
             (len(nic_info[0]) != 5) or
             (not nic_info[0][0])):
@@ -206,7 +209,8 @@ class zvmNeutronAgent(object):
                             physical_network, segmentation_id,
                             userid)
         else:
-            self._sdkreq.call('vswitch_grant_user', physical_network, userid)
+            self._requesthandler.call('vswitch_grant_user',
+                                      physical_network, userid)
         return userid
 
     def _treat_devices_added(self, devices):
@@ -256,8 +260,9 @@ class zvmNeutronAgent(object):
 
                         LOG.debug("Adding NICs for %(userid)s, info: %(nic)s",
                                   {'userid': userid, 'nic': nics_info[userid]})
-                        nic_info = self._sdkreq.call('guests_get_nic_info',
-                                                     nic_id=details['port_id'])
+                        nic_info = self._requesthandler.call(
+                                                    'guests_get_nic_info',
+                                                    nic_id=details['port_id'])
                         if ((len(nic_info) != 1) or
                             (len(nic_info[0]) != 5) or
                             (not nic_info[0][1])):
@@ -266,9 +271,10 @@ class zvmNeutronAgent(object):
                                 (details['port_id'], nic_info))
                         else:
                             vdev = nic_info[0][1]
-                        self._sdkreq.call('guest_nic_couple_to_vswitch',
-                                          userid, vdev,
-                                          details['physical_network'])
+                        self._requesthandler.call(
+                                            'guest_nic_couple_to_vswitch',
+                                            userid, vdev,
+                                            details['physical_network'])
 
                         LOG.debug("New added NIC info: %s", nics_info[userid])
                     else:
@@ -346,7 +352,7 @@ class zvmNeutronAgent(object):
         while True:
             LOG.info("Try to reinitialize network ... ")
             try:
-                tmp_new_time = self._sdkreq.call('host_get_info').get(
+                tmp_new_time = self._requesthandler.call('host_get_info').get(
                                         'ipl_time')
                 if zvm_uptime != tmp_new_time:
                     self._port_map = self._utils.get_port_map()

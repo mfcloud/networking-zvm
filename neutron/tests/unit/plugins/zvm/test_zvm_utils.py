@@ -17,25 +17,32 @@ Unit tests for the z/VM utils.
 """
 import mock
 
+from oslo_config import cfg
+
 from neutron.plugins.zvm.common import exception
 from neutron.plugins.zvm.common import utils
 from neutron.tests import base
-from sdkclient import client
+from zvmconnector import connector
+
+SDK_URL = 'https://10.10.10.1:8080'
 
 
 class TestZVMUtils(base.BaseTestCase):
     def setUp(self):
         super(TestZVMUtils, self).setUp()
-        self._utils = utils.zVMSDKRequestHandler()
+        self.addCleanup(cfg.CONF.reset)
+        cfg.CONF.set_override('cloud_connector_url', SDK_URL,
+                              group='AGENT')
+        self._utils = utils.zVMConnectorRequestHandler()
 
-    @mock.patch.object(client.SDKClient, 'send_request')
+    @mock.patch.object(connector.ZVMConnector, 'send_request')
     def test_call(self, request):
         request.return_value = {"overallRC": 0, 'output': "OK"}
         info = self._utils.call('API', "parm1", "parm2")
         request.assert_called_with('API', "parm1", "parm2")
         self.assertEqual("OK", info)
 
-    @mock.patch.object(client.SDKClient, 'send_request')
+    @mock.patch.object(connector.ZVMConnector, 'send_request')
     def test_call_exception(self, request):
         request.return_value = {"overallRC": 1, 'output': ""}
         self.assertRaises(exception.ZVMSDKRequestFailed,
