@@ -52,10 +52,10 @@ class zvmUtils(object):
         ports_info = self._requesthandler.call('guests_get_nic_info')
         ports = {}
         for p in ports_info:
-            if p[3] is not None:
-                userid = p[0]
-                vswitch = p[2]
-                port_id = p[3]
+            if p['port'] is not None:
+                userid = p['userid']
+                vswitch = p['switch']
+                port_id = p['port']
                 ports[port_id] = {'userid': userid,
                                   'vswitch': vswitch}
         return ports

@@ -135,8 +135,9 @@ class TestZVMNeutronAgent(base.BaseTestCase):
                        segmentation_id='10', network_id='fake_net',
                        mac_address='00:11:22:33:44:55',
                        network_type='flat', admin_state_up=True)
-        call_ret = mock.MagicMock(return_value=[['fake_user', 'nic', 'vs',
-                                                 'nic_id', None]])
+        call_ret = mock.MagicMock(return_value=[
+                        {'userid': 'fake_user', 'interface': 'nic',
+                         'switch': 'vs', 'port': 'nic_id', 'comments': None}])
         attrs = {'get_device_details.return_value': details}
         self.agent.plugin_rpc.configure_mock(**attrs)
         with mock.patch.object(self.agent, "_treat_vif_port",
@@ -183,7 +184,9 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
     def test_port_update_up(self):
         sdk_req_resp = []
-        sdk_req_resp.append([['fake_user1', '1000', None, 'fake_uuid1', None]])
+        sdk_req_resp.append([{'userid': 'fake_user1', 'interface': '1000',
+                              'switch': None, 'port': 'fake_uuid1',
+                              'comments': None}])
         sdk_req_resp.append('')
         call_ret = mock.MagicMock(side_effect=sdk_req_resp)
 
@@ -197,7 +200,9 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
     def test_port_update_down(self):
         sdk_req_resp = []
-        sdk_req_resp.append([['fake_user1', '1000', None, 'fake_uuid1', None]])
+        sdk_req_resp.append([{'userid': 'fake_user1', 'interface': '1000',
+                              'switch': None, 'port': 'fake_uuid1',
+                              'comments': None}])
         sdk_req_resp.append('')
         call_ret = mock.MagicMock(side_effect=sdk_req_resp)
 
@@ -210,8 +215,9 @@ class TestZVMNeutronAgent(base.BaseTestCase):
                 self.assertTrue(rpc.called)
 
     def test_treat_vif_port_admin_true(self):
-        call_ret = mock.MagicMock(return_value=[['fake_user', 'nic', 'vs',
-                                                 'nic_id', None]])
+        call_ret = mock.MagicMock(return_value=[
+            {'userid': 'fake_user', 'interface': 'nic',
+             'switch': 'vs', 'port': 'nic_id', 'comments': None}])
 
         with mock.patch.object(self.agent, "port_bound") as bound:
             with mock.patch.object(self.agent._requesthandler, "call",
@@ -222,7 +228,9 @@ class TestZVMNeutronAgent(base.BaseTestCase):
 
     def test_treat_vif_port_admin_false(self):
         sdk_req_resp = []
-        sdk_req_resp.append([('fake_user', 'nic', 'vs', 'nic_id', None)])
+        sdk_req_resp.append([{'userid': 'fake_user', 'interface': 'nic',
+                              'switch': 'vs', 'port': 'nic_id',
+                              'comments': None}])
         sdk_req_resp.append('')
         call_ret = mock.MagicMock(side_effect=sdk_req_resp)
 

@@ -114,13 +114,13 @@ class zvmNeutronAgent(object):
                                                  nic_id=port['id'])
             if ((len(nic_info) != 1) or
                 (len(nic_info[0]) != 5) or
-                (not nic_info[0][1])):
+                (not nic_info[0]['interface'])):
                 raise exception.zVMInvalidDataError(msg=('Cannot get vdev '
                                 'for user %s, couple to port %s, '
                                 'SDK output is %s') %
                                 (userid, port['id'], nic_info))
             else:
-                vdev = nic_info[0][1]
+                vdev = nic_info[0]['interface']
             self._requesthandler.call('guest_nic_couple_to_vswitch', userid,
                                       vdev, vswitch)
             self.plugin_rpc.update_device_up(self.context, port['id'],
@@ -130,13 +130,13 @@ class zvmNeutronAgent(object):
                                                  nic_id=port['id'])
             if ((len(nic_info) != 1) or
                 (len(nic_info[0]) != 5) or
-                (not nic_info[0][1])):
+                (not nic_info[0]['interface'])):
                 raise exception.zVMInvalidDataError(msg=('Cannot get vdev '
                                 'for user %s, uncouple port %s, '
                                 'SDK output is %s') %
                                 (userid, port['id'], nic_info))
             else:
-                vdev = nic_info[0][1]
+                vdev = nic_info[0]['interface']
             self._requesthandler.call('guest_nic_uncouple_from_vswitch',
                                       userid, vdev)
             self.plugin_rpc.update_device_down(self.context, port['id'],
@@ -179,8 +179,8 @@ class zvmNeutronAgent(object):
         nic_info = self._requesthandler.call('guests_get_nic_info')
         ports = set()
         for p in nic_info:
-            if p[3] is not None:
-                new_port_id = p[3]
+            if p['port'] is not None:
+                new_port_id = p['port']
                 ports.add(new_port_id)
         if ports == registered_ports:
             return
@@ -196,12 +196,12 @@ class zvmNeutronAgent(object):
                                              nic_id=port_id)
         if ((len(nic_info) != 1) or
             (len(nic_info[0]) != 5) or
-            (not nic_info[0][0])):
+            (not nic_info[0]['userid'])):
             raise exception.zVMInvalidDataError(msg=('Cannot get userid '
                                 'for port %s, SDK output is %s') %
                                 (port_id, nic_info))
         else:
-            userid = nic_info[0][0]
+            userid = nic_info[0]['userid']
 
         LOG.info("Update port for user:%s" % userid)
         if admin_state_up:
@@ -265,12 +265,12 @@ class zvmNeutronAgent(object):
                                                     nic_id=details['port_id'])
                         if ((len(nic_info) != 1) or
                             (len(nic_info[0]) != 5) or
-                            (not nic_info[0][1])):
+                            (not nic_info[0]['interface'])):
                             raise exception.zVMInvalidDataError(msg=('Cannot '
                                 'get vdev for port %s, SDK output is %s') %
                                 (details['port_id'], nic_info))
                         else:
-                            vdev = nic_info[0][1]
+                            vdev = nic_info[0]['interface']
                         self._requesthandler.call(
                                             'guest_nic_couple_to_vswitch',
                                             userid, vdev,
